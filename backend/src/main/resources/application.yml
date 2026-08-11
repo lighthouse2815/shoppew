@@ -1,0 +1,114 @@
+spring:
+  application:
+    name: shoppew-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/shoppew}
+    username: ${DB_USERNAME:shoppew}
+    password: ${DB_PASSWORD:shoppew_dev_password}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: 30000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        default_batch_fetch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:16379}
+      timeout: 2s
+      repositories:
+        enabled: false
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+
+server:
+  port: ${BACKEND_PORT:28080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    display-request-duration: true
+    operations-sorter: method
+
+logging:
+  pattern:
+    level: "%5p [requestId:%X{requestId:-none}]"
+
+app:
+  api-version: v1
+  locale: vi-VN
+  currency: VND
+  time-zone: ${APP_TIME_ZONE:Asia/Ho_Chi_Minh}
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:3002}
+  access-token-ttl: ${APP_ACCESS_TOKEN_TTL:PT15M}
+  refresh-token-ttl: ${APP_REFRESH_TOKEN_TTL:P30D}
+  inventory-reservation-ttl: ${APP_INVENTORY_RESERVATION_TTL:PT15M}
+  jwt-secret: ${APP_JWT_SECRET:shoppew-development-signing-secret-change-before-production-2026}
+  secure-cookies: ${APP_SECURE_COOKIES:false}
+  email-verification-required: ${APP_EMAIL_VERIFICATION_REQUIRED:false}
+  email-verification-ttl: ${APP_EMAIL_VERIFICATION_TTL:PT24H}
+  password-reset-ttl: ${APP_PASSWORD_RESET_TTL:PT30M}
+  email:
+    delivery-enabled: ${APP_EMAIL_DELIVERY_ENABLED:false}
+    from: ${APP_EMAIL_FROM:no-reply@shoppew.local}
+    web-base-url: ${APP_WEB_BASE_URL:http://localhost:3000}
+  storage:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${S3_PUBLIC_ENDPOINT:http://localhost:9000}
+    access-key: ${S3_ACCESS_KEY:shoppew_minio}
+    secret-key: ${S3_SECRET_KEY:shoppew_minio_dev_password}
+    bucket: ${S3_BUCKET:shoppew-media}
+  payment:
+    mock-enabled: ${APP_MOCK_PAYMENT_ENABLED:true}
+    mock-webhook-secret: ${APP_MOCK_PAYMENT_WEBHOOK_SECRET:shoppew-mock-webhook-development-secret}
+  rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    login-per-minute: ${APP_RATE_LIMIT_LOGIN_PER_MINUTE:20}
+    registration-per-minute: ${APP_RATE_LIMIT_REGISTRATION_PER_MINUTE:10}
+    account-recovery-per-minute: ${APP_RATE_LIMIT_ACCOUNT_RECOVERY_PER_MINUTE:5}
+    search-per-minute: ${APP_RATE_LIMIT_SEARCH_PER_MINUTE:180}
+    sensitive-mutation-per-minute: ${APP_RATE_LIMIT_SENSITIVE_MUTATION_PER_MINUTE:60}
+  finance:
+    platform-fee-rate: ${APP_PLATFORM_FEE_RATE:0.05}

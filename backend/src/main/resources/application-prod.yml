@@ -1,0 +1,26 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  forward-headers-strategy: native
+
+springdoc:
+  api-docs:
+    enabled: ${APP_OPENAPI_ENABLED:false}
+  swagger-ui:
+    enabled: ${APP_OPENAPI_ENABLED:false}
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  secure-cookies: ${APP_SECURE_COOKIES:true}
+  email-verification-required: ${APP_EMAIL_VERIFICATION_REQUIRED:true}
+  payment:
+    mock-enabled: ${APP_MOCK_PAYMENT_ENABLED:false}

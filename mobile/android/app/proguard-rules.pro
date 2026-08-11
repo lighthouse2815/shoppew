@@ -1,0 +1,3 @@
+-keepattributes Signature,*Annotation*
+-dontwarn javax.annotation.**
+-keep class com.shoppew.android.core.api.** { *; }

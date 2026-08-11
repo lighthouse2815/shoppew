@@ -1,0 +1,79 @@
+name: Full E2E (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: Real backend / Storefront, Seller, Admin
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+      E2E_COMPOSE_PROJECT: shoppew-e2e-${{ github.run_id }}
+      # The smoke script invokes `docker compose exec` directly for database
+      # evidence, so it must resolve the same isolated project as this job.
+      COMPOSE_PROJECT_NAME: shoppew-e2e-${{ github.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm 10.15.0
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Confirm required runner tools
+        run: |
+          docker compose version
+          google-chrome --version
+          pwsh --version
+
+      - name: Build and start the isolated local environment
+        run: docker compose -p "$E2E_COMPOSE_PROJECT" up -d --build
+
+      - name: Wait for backend readiness
+        run: |
+          for attempt in {1..120}; do
+            if curl --fail --silent http://localhost:28080/actuator/health/readiness > /dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -p "$E2E_COMPOSE_PROJECT" ps
+          docker compose -p "$E2E_COMPOSE_PROJECT" logs --no-color --tail=300 backend
+          exit 1
+
+      - name: Type-check Playwright suite
+        run: pnpm typecheck:e2e
+
+      - name: Run real-backend cross-client E2E
+        run: pnpm test:e2e
+
+      - name: Print service diagnostics on failure
+        if: failure()
+        run: |
+          docker compose -p "$E2E_COMPOSE_PROJECT" ps || true
+          docker compose -p "$E2E_COMPOSE_PROJECT" logs --no-color --tail=300 \
+            backend postgres redis minio minio-init mailpit || true
+
+      - name: Remove isolated E2E services and volumes
+        if: always()
+        run: docker compose -p "$E2E_COMPOSE_PROJECT" down --volumes --remove-orphans

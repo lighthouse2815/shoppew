@@ -1,0 +1,145 @@
+name: shoppew
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shoppew}
+      POSTGRES_USER: ${POSTGRES_USER:-shoppew}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoppew_dev_password}
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-16379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-shoppew_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-shoppew_minio_dev_password}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-shoppew_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-shoppew_minio_dev_password}
+      MINIO_BUCKET: ${MINIO_BUCKET:-shoppew-media}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}" &&
+        mc anonymous set download "local/$${MINIO_BUCKET}"
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_HTTP_PORT:-8025}:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      BACKEND_PORT: 8080
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-shoppew}
+      DB_USERNAME: ${POSTGRES_USER:-shoppew}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-shoppew_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-shoppew_minio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-shoppew_minio_dev_password}
+      S3_BUCKET: ${MINIO_BUCKET:-shoppew-media}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+      APP_ACCESS_TOKEN_TTL: ${APP_ACCESS_TOKEN_TTL:-PT15M}
+      APP_REFRESH_TOKEN_TTL: ${APP_REFRESH_TOKEN_TTL:-P30D}
+      APP_INVENTORY_RESERVATION_TTL: ${APP_INVENTORY_RESERVATION_TTL:-PT15M}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Ho_Chi_Minh}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-shoppew-development-signing-secret-change-before-production-2026}
+      APP_SECURE_COOKIES: ${APP_SECURE_COOKIES:-false}
+      APP_EMAIL_VERIFICATION_REQUIRED: ${APP_EMAIL_VERIFICATION_REQUIRED:-false}
+      APP_EMAIL_DELIVERY_ENABLED: ${APP_EMAIL_DELIVERY_ENABLED:-true}
+      APP_EMAIL_FROM: ${APP_EMAIL_FROM:-no-reply@shoppew.local}
+      APP_WEB_BASE_URL: ${APP_WEB_BASE_URL:-http://localhost:3000}
+      APP_MOCK_PAYMENT_ENABLED: ${APP_MOCK_PAYMENT_ENABLED:-true}
+      APP_MOCK_PAYMENT_WEBHOOK_SECRET: ${APP_MOCK_PAYMENT_WEBHOOK_SECRET:-shoppew-mock-webhook-development-secret}
+      APP_RATE_LIMIT_ENABLED: ${APP_RATE_LIMIT_ENABLED:-true}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-28080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  mailpit-data:

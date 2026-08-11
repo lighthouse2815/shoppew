@@ -1,0 +1,224 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  backend:
+    name: Backend / Java 21, tests, package, Flyway
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Verify backend against fresh Testcontainers services
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp clean verify
+
+  web:
+    name: Web / Node 22, pnpm 10, quality and builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm 10.15.0
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint web workspaces
+        run: pnpm lint
+
+      - name: Type-check web workspaces
+        run: pnpm typecheck
+
+      - name: Type-check Playwright suite
+        run: pnpm typecheck:e2e
+
+      - name: Run web tests
+        run: pnpm test
+
+      - name: Build all web applications
+        run: pnpm build
+
+  android:
+    name: Android / JVM tests, lint, assemble (no emulator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+
+      - name: Install compile SDK 36 (no system image or emulator)
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run Android JVM tests, lint, and debug build
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug
+
+  api-contract:
+    name: API contract / live OpenAPI matches TypeScript
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: shoppew_contract
+          POSTGRES_USER: shoppew
+          POSTGRES_PASSWORD: shoppew_contract_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shoppew -d shoppew_contract"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Set up pnpm 10.15.0
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package backend contract fixture
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp -DskipTests package
+
+      - name: Start backend on clean migrated database
+        working-directory: backend
+        env:
+          BACKEND_PORT: "28080"
+          DB_URL: jdbc:postgresql://localhost:5432/shoppew_contract
+          DB_USERNAME: shoppew
+          DB_PASSWORD: shoppew_contract_password
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          APP_EMAIL_DELIVERY_ENABLED: "false"
+          APP_RATE_LIMIT_ENABLED: "false"
+          APP_JWT_SECRET: shoppew-contract-ci-signing-secret-not-for-production
+        run: |
+          nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > "$RUNNER_TEMP/shoppew-backend.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/shoppew-backend.pid"
+
+      - name: Wait for Flyway and backend readiness
+        run: |
+          for attempt in {1..90}; do
+            if curl --fail --silent http://localhost:28080/actuator/health/readiness > /dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/shoppew-backend.pid")" 2>/dev/null; then
+              cat "$RUNNER_TEMP/shoppew-backend.log"
+              exit 1
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/shoppew-backend.log"
+          exit 1
+
+      - name: Generate and compare TypeScript API contract
+        run: |
+          pnpm --filter @shoppew/api-client exec openapi-typescript \
+            http://localhost:28080/v3/api-docs \
+            -o "$RUNNER_TEMP/schema.generated.d.ts"
+          node scripts/ci/compare-openapi-contract.mjs \
+            web/packages/api-client/src/schema.d.ts \
+            "$RUNNER_TEMP/schema.generated.d.ts"
+
+      - name: Print backend log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/shoppew-backend.log" || true
+
+      - name: Stop backend contract fixture
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/shoppew-backend.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/shoppew-backend.pid")" 2>/dev/null || true
+          fi

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shoppew UI Workflow"
+  short_description: "Original accessible commerce UI standards"
+  default_prompt: "Use $shoppew-ui to design or implement a shoppew commerce interface."

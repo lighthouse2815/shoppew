@@ -1,0 +1,26 @@
+:root {
+  --brand-950: #102f2e;
+  --brand-800: #174b49;
+  --brand-600: #087e76;
+  --brand-500: #0a9489;
+  --brand-100: #ddf3ef;
+  --spark-400: #d8ed4b;
+  --violet-500: #6258d6;
+  --coral-500: #d9604c;
+  --canvas: #f5f7f4;
+  --surface: #ffffff;
+  --ink: #18211f;
+  --muted: #65716d;
+  --line: #dce3df;
+  --success: #18794e;
+  --warning: #a15c00;
+  --danger: #b42318;
+  --info: #2457c5;
+  --shadow-1: 0 8px 24px rgb(16 47 46 / 8%);
+  --shadow-2: 0 16px 40px rgb(16 47 46 / 14%);
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-media: 14px;
+  --content-max: 1360px;
+  --font-sans: "Be Vietnam Pro Variable", "Be Vietnam Pro", system-ui, "Segoe UI", sans-serif;
+}

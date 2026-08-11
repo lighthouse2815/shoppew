@@ -1,0 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
+import { CircleDollarSign, Clock3, Landmark, ShieldCheck } from "lucide-react";
+import { Empty, ErrorBlock, Loading, NeedShop, PageHeader, Status } from "@/components/common";
+import { dateTime, money } from "@/lib/format";
+import type { Balance, Page, Transaction } from "@/lib/types";
+import { useAuth, useShop } from "@/providers";
+
+export function FinancePage() {
+  const { request } = useAuth(); const { shop } = useShop(); const id = shop?.id;
+  const balance = useQuery({ queryKey: ["seller-balance", id], queryFn: () => request<Balance>(`/api/v1/seller/shops/${id}/finance/balance`), enabled: Boolean(id) });
+  const transactions = useQuery({ queryKey: ["seller-transactions", id], queryFn: () => request<Page<Transaction>>(`/api/v1/seller/shops/${id}/finance/transactions?size=100`), enabled: Boolean(id) });
+  return <NeedShop><PageHeader eyebrow="Settlement ledger" title="Tài chính" description="Sổ cái bất biến theo từng giao dịch bán hàng, phí, hoàn tiền và điều chỉnh." />{balance.isPending || transactions.isPending ? <Loading label="Đang đối soát số dư" /> : (balance.error ?? transactions.error) ? <ErrorBlock error={(balance.error ?? transactions.error)!} /> : <><div className="metric-grid"><article><Clock3 /><span>Đang chờ</span><strong>{money(balance.data?.pendingAmount, balance.data?.currency)}</strong><small>Chưa đủ điều kiện khả dụng</small></article><article><CircleDollarSign /><span>Khả dụng</span><strong>{money(balance.data?.availableAmount, balance.data?.currency)}</strong><small>Có thể đưa vào kỳ chi trả</small></article><article><ShieldCheck /><span>Tạm giữ</span><strong>{money(balance.data?.heldAmount, balance.data?.currency)}</strong><small>Phục vụ tranh chấp / hoàn tiền</small></article><article><Landmark /><span>Đã chi trả</span><strong>{money(balance.data?.paidOutAmount, balance.data?.currency)}</strong><small>Tổng lũy kế</small></article></div>{transactions.data?.content?.length ? <div className="data-table-wrap"><table className="data-table"><thead><tr><th>Thời gian</th><th>Loại</th><th>Diễn giải</th><th>Ngăn số dư</th><th>Số tiền</th></tr></thead><tbody>{transactions.data.content.map((item) => <tr key={item.id}><td>{dateTime(item.createdAt)}</td><td><Status value={item.transactionType} /></td><td>{item.description ?? item.referenceKey}<small>{item.orderId ? `Order ${item.orderId}` : item.refundId ? `Refund ${item.refundId}` : ""}</small></td><td>{item.balanceBucket}</td><td className={(item.amount ?? 0) < 0 ? "amount-negative" : "amount-positive"}>{money(item.amount, item.currency)}</td></tr>)}</tbody></table></div> : <Empty title="Chưa có giao dịch" description="Sổ cái sẽ ghi nhận khi đơn hàng phát sinh sự kiện tài chính." />}</>}</NeedShop>;
+}

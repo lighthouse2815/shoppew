@@ -1,0 +1,26 @@
+{
+  "name": "shoppew",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './web/*' dev",
+    "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck",
+    "test": "pnpm --recursive --if-present test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "typecheck:e2e": "tsc --project tests/e2e/tsconfig.json",
+    "build": "pnpm --recursive --if-present build",
+    "format:check": "pnpm --recursive --if-present format:check"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0",
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  }
+}

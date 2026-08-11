@@ -1,0 +1,36 @@
+import type { components } from "@shoppew/api-client";
+
+export type Schema<Name extends keyof components["schemas"]> = components["schemas"][Name];
+export type AuthResponse = Schema<"AuthResponse">;
+export type AuthUser = Schema<"AuthUserResponse">;
+export type Shop = Schema<"ShopResponse">;
+export type ProductSummary = Schema<"ProductSummaryResponse">;
+export type ProductDetail = Schema<"ProductDetailResponse">;
+export type ProductOption = Schema<"ProductOptionResponse">;
+export type OptionValue = Schema<"OptionValueResponse">;
+export type ProductImage = Schema<"ProductImageResponse">;
+export type Variant = Schema<"VariantResponse">;
+export type AttributeDefinition = Schema<"AttributeDefinitionResponse">;
+export type ProductAttribute = Schema<"ProductAttributeResponse">;
+export type Inventory = Schema<"InventoryResponse">;
+export type InventoryTransaction = Schema<"InventoryTransactionResponse">;
+export type OrderSummary = Schema<"OrderSummaryResponse">;
+export type OrderDetail = Schema<"OrderDetailResponse">;
+export type Voucher = Schema<"VoucherResponse">;
+export type Promotion = Schema<"PromotionResponse">;
+export type Review = Schema<"ReviewResponse">;
+export type Balance = Schema<"SellerBalanceResponse">;
+export type Transaction = Schema<"SellerTransactionResponse">;
+export type Analytics = Schema<"SellerAnalyticsResponse">;
+export type Settings = Schema<"ShopSettingsResponse">;
+export type ShopAddress = Schema<"ShopAddressResponse">;
+export type Refund = Schema<"RefundResponse">;
+export type Dispute = Schema<"DisputeResponse">;
+export type Category = Schema<"CategoryTreeResponse">;
+export type Brand = Schema<"BrandResponse">;
+type RequiredFields<T, Keys extends keyof T> = Omit<T, Keys> & Required<Pick<T, Keys>>;
+export type Conversation = RequiredFields<Schema<"ConversationResponse">, "id" | "shopId" | "shopName" | "customerId" | "customerEmail" | "status" | "createdAt" | "updatedAt">;
+export type ChatMessage = Omit<RequiredFields<Schema<"MessageResponse">, "id" | "conversationId" | "senderId" | "senderEmail" | "mine" | "sentAt">, "type"> & {
+  type: Schema<"SendMessageRequest">["type"];
+};
+export type Page<T> = { content?: T[]; page?: number; size?: number; totalElements?: number; totalPages?: number };

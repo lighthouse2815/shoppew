@@ -1,0 +1,43 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# IDE and OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Java
+backend/target/
+*.log
+
+# JavaScript
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Android / Gradle
+.gradle/
+mobile/android/local.properties
+mobile/android/**/build/
+*.jks
+*.keystore
+
+# Runtime data
+.data/
+.artifacts/
+tmp/
+uploads/
+
+# Tooling
+.codegraph/
+!.agents/

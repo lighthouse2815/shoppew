@@ -1,0 +1,5 @@
+packages:
+  - "web/storefront"
+  - "web/seller"
+  - "web/admin"
+  - "web/packages/*"
