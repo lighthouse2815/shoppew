@@ -112,6 +112,7 @@ jobs:
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          offline-scan: true
           exit-code: 1
 
       - name: Build immutable backend image

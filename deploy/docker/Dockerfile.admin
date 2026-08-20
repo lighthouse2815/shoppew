@@ -28,6 +28,7 @@ ARG VITE_API_URL
 ENV SHOPPEW_API_ORIGIN=${VITE_API_URL}
 COPY deploy/nginx/spa.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build --chown=101:101 /workspace/web/admin/dist /usr/share/nginx/html
+USER 101
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
