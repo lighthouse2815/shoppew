@@ -104,6 +104,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Scan source dependencies, secrets, and configuration
+        env:
+          TRIVY_OFFLINE_SCAN: "true"
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -112,7 +114,6 @@ jobs:
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          offline-scan: true
           exit-code: 1
 
       - name: Build immutable backend image
@@ -218,7 +219,7 @@ jobs:
           skip-setup-trivy: true
 
       - name: Retain runtime SBOMs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: shoppew-runtime-sboms-${{ github.sha }}
           path: shoppew-*-sbom.cdx.json
