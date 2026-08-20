@@ -183,7 +183,7 @@ jobs:
           REDIS_PORT: "6379"
           APP_EMAIL_DELIVERY_ENABLED: "false"
           APP_RATE_LIMIT_ENABLED: "false"
-          APP_JWT_SECRET: shoppew-contract-ci-signing-secret-not-for-production
+          APP_JWT_SECRET: shoppew-contract-ci-signing-secret-not-for-production-use-only-2026
         run: |
           nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > "$RUNNER_TEMP/shoppew-backend.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/shoppew-backend.pid"
