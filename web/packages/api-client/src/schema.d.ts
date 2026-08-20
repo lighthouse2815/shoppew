@@ -1924,6 +1924,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/commerce-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/categories": {
         parameters: {
             query?: never;
@@ -4176,6 +4192,17 @@ export interface components {
             /** Format: date-time */
             timestamp?: string;
         };
+        ApiResponseCommerceCapabilitiesResponse: {
+            success?: boolean;
+            data?: components["schemas"]["CommerceCapabilitiesResponse"];
+            error?: components["schemas"]["ApiError"];
+            /** Format: date-time */
+            timestamp?: string;
+        };
+        CommerceCapabilitiesResponse: {
+            availablePaymentProviders?: ("COD" | "MOCK_ONLINE" | "VNPAY" | "MOMO" | "ZALOPAY" | "STRIPE")[];
+            availableShippingMethods?: string[];
+        };
         ApiResponseListCategoryTreeResponse: {
             success?: boolean;
             data?: components["schemas"]["CategoryTreeResponse"][];
@@ -4491,31 +4518,31 @@ export interface components {
             createdAt?: string;
         };
         JsonNode: {
-            container?: boolean;
-            valueNode?: boolean;
-            missingNode?: boolean;
-            object?: boolean;
-            /** @enum {string} */
-            nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
+            binary?: boolean;
             string?: boolean;
-            integralNumber?: boolean;
-            pojo?: boolean;
-            floatingPointNumber?: boolean;
-            short?: boolean;
-            int?: boolean;
-            long?: boolean;
+            boolean?: boolean;
             double?: boolean;
-            bigDecimal?: boolean;
-            bigInteger?: boolean;
+            short?: boolean;
+            long?: boolean;
+            int?: boolean;
             /** @deprecated */
             textual?: boolean;
-            boolean?: boolean;
-            binary?: boolean;
+            pojo?: boolean;
+            object?: boolean;
+            floatingPointNumber?: boolean;
             array?: boolean;
             empty?: boolean;
             null?: boolean;
             float?: boolean;
             number?: boolean;
+            container?: boolean;
+            bigDecimal?: boolean;
+            bigInteger?: boolean;
+            /** @enum {string} */
+            nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
+            integralNumber?: boolean;
+            valueNode?: boolean;
+            missingNode?: boolean;
             embeddedValue?: boolean;
         };
         PageResponseAuditLogResponse: {
@@ -8208,6 +8235,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponsePageResponseReviewResponse"];
+                };
+            };
+        };
+    };
+    capabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCommerceCapabilitiesResponse"];
                 };
             };
         };

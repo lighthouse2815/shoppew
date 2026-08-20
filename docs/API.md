@@ -194,6 +194,7 @@ These routes require `ADMIN` or `SUPER_ADMIN`; the relevant moderation and finan
 | Public | `/api/v1/public/categories`, `/brands` | Active category tree and brands |
 | Public | `/api/v1/public/products` | Paged approved-product search with keyword, shop/category/brand, decimal price/rating filters, six sorts, and detail by slug |
 | Public | `/api/v1/public/shops/{slug}` | Active shop profile |
+| Public | `/api/v1/public/commerce-capabilities` | Payment providers and shipping methods registered in the current runtime; checkout clients must not invent unavailable methods |
 | Seller | `/api/v1/seller/shops` | Create and manage owned shops |
 | Seller | `/api/v1/seller/shops/{shopId}` | Addresses and commerce settings |
 | Seller | `/api/v1/seller/shops/{shopId}/products` | Drafts, product content, options, values, variants, typed attributes, media, submission, and archive |
@@ -224,7 +225,7 @@ Every cart read recalculates current unit prices, stock, shop/product/variant el
 
 ## Checkout, orders, payments, and shipping
 
-Checkout request bodies contain only owned cart item IDs, an owned address ID, a payment provider (`COD` or `MOCK_ONLINE`), an optional shipping method code (currently `MOCK_STANDARD`), and an optional customer note. The backend recalculates every monetary value and rejects stale or ineligible input.
+Checkout request bodies contain only owned cart item IDs, an owned address ID, a payment provider, a shipping method code, and an optional customer note. Development can register `MOCK_ONLINE` and `MOCK_STANDARD`; production rejects both mock adapters. Clients read `/api/v1/public/commerce-capabilities` and render only the methods active in that backend runtime. The backend recalculates every monetary value and rejects stale, unavailable, or ineligible input.
 Up to five optional `voucherCodes` may be supplied. Promotion prices and voucher discounts are always resolved again inside the placement transaction.
 
 | Method | Route | Purpose |

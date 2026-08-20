@@ -22,5 +22,9 @@ management:
 app:
   secure-cookies: ${APP_SECURE_COOKIES:true}
   email-verification-required: ${APP_EMAIL_VERIFICATION_REQUIRED:true}
+  email:
+    delivery-enabled: ${APP_EMAIL_DELIVERY_ENABLED:true}
   payment:
     mock-enabled: ${APP_MOCK_PAYMENT_ENABLED:false}
+  shipping:
+    mock-enabled: ${APP_MOCK_SHIPPING_ENABLED:false}

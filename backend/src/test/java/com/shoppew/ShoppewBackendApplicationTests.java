@@ -101,6 +101,13 @@ class ShoppewBackendApplicationTests {
                 .andExpect(jsonPath("$.data.timeZone").value("Asia/Ho_Chi_Minh"))
                 .andExpect(jsonPath("$.error").doesNotExist())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
+
+        mockMvc.perform(get("/api/v1/public/commerce-capabilities"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.availablePaymentProviders").isArray())
+                .andExpect(jsonPath("$.data.availablePaymentProviders[0]").value("COD"))
+                .andExpect(jsonPath("$.data.availablePaymentProviders[1]").value("MOCK_ONLINE"))
+                .andExpect(jsonPath("$.data.availableShippingMethods[0]").value("MOCK_STANDARD"));
     }
 
     @Test

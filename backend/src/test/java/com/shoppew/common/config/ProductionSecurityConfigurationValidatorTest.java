@@ -15,6 +15,8 @@ class ProductionSecurityConfigurationValidatorTest {
         AppProperties properties = properties(
                 false,
                 false,
+                false,
+                true,
                 true,
                 "shoppew-development-signing-secret-change-before-production-2026",
                 "http://localhost:3000",
@@ -30,8 +32,10 @@ class ProductionSecurityConfigurationValidatorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("APP_JWT_SECRET")
                 .hasMessageContaining("APP_SECURE_COOKIES")
+                .hasMessageContaining("APP_EMAIL_DELIVERY_ENABLED")
                 .hasMessageContaining("APP_CORS_ALLOWED_ORIGINS")
                 .hasMessageContaining("APP_MOCK_PAYMENT_ENABLED")
+                .hasMessageContaining("APP_MOCK_SHIPPING_ENABLED")
                 .hasMessageNotContaining("shoppew-development-signing-secret");
     }
 
@@ -40,6 +44,8 @@ class ProductionSecurityConfigurationValidatorTest {
         AppProperties properties = properties(
                 true,
                 true,
+                true,
+                false,
                 false,
                 "a-production-signing-key-with-more-than-sixty-four-utf8-bytes-0123456789",
                 "https://shoppew.example",
@@ -63,6 +69,8 @@ class ProductionSecurityConfigurationValidatorTest {
         AppProperties properties = properties(
                 true,
                 true,
+                true,
+                false,
                 false,
                 "a-production-signing-key-with-more-than-sixty-four-utf8-bytes-0123456789",
                 "https://shoppew.example",
@@ -81,7 +89,9 @@ class ProductionSecurityConfigurationValidatorTest {
     private AppProperties properties(
             boolean secureCookies,
             boolean verificationRequired,
+            boolean emailDeliveryEnabled,
             boolean mockPaymentEnabled,
+            boolean mockShippingEnabled,
             String jwtSecret,
             String webBaseUrl,
             String publicStorageEndpoint,
@@ -102,7 +112,7 @@ class ProductionSecurityConfigurationValidatorTest {
                 verificationRequired,
                 Duration.ofHours(24),
                 Duration.ofMinutes(30),
-                new AppProperties.Email(true, "no-reply@shoppew.example", webBaseUrl),
+                new AppProperties.Email(emailDeliveryEnabled, "no-reply@shoppew.example", webBaseUrl),
                 new AppProperties.Storage(
                         "https://storage.internal.example",
                         publicStorageEndpoint,
@@ -110,6 +120,7 @@ class ProductionSecurityConfigurationValidatorTest {
                         storageSecretKey,
                         "shoppew-media"),
                 new AppProperties.Payment(mockPaymentEnabled, "unused-when-mock-is-disabled"),
+                new AppProperties.Shipping(mockShippingEnabled),
                 new AppProperties.RateLimit(true, 20, 10, 5, 180, 60));
     }
 }

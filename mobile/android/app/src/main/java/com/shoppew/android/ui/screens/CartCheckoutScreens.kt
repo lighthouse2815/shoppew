@@ -235,7 +235,6 @@ fun CheckoutScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SectionTitle("Phương thức thanh toán")
                     PaymentChoice("COD", "Thanh toán khi nhận hàng", state.paymentProvider == "COD") { viewModel.setPayment("COD") }
-                    PaymentChoice("MOCK_ONLINE", "Thanh toán trực tuyến mô phỏng", state.paymentProvider == "MOCK_ONLINE") { viewModel.setPayment("MOCK_ONLINE") }
                 }
             }
             item {

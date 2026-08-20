@@ -53,7 +53,7 @@ The degraded fallback is weaker across multiple replicas because counters are th
 
 ## Production fail-fast configuration
 
-With `SPRING_PROFILES_ACTIVE=prod`, startup refuses known development/default or undersized JWT/database/object-storage secrets; insecure cookies; disabled email verification or rate limiting; enabled mock payment; empty/non-HTTPS/localhost CORS and web URLs; and a non-HTTPS public media endpoint. The relevant settings are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+With `SPRING_PROFILES_ACTIVE=prod`, startup refuses known development/default or undersized JWT/database/object-storage secrets; insecure cookies; disabled email verification, email delivery, or rate limiting; enabled mock payment or mock shipping; empty/non-HTTPS/localhost CORS and web URLs; and a non-HTTPS public media endpoint. The relevant settings are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 This validator is a last guardrail, not a secret manager. Secrets must be injected at runtime. Production still needs TLS/proxy configuration, protected management access, backup/restore, external-provider credential rotation, and deployment-level browser headers.
 
@@ -67,11 +67,11 @@ This validator is a last guardrail, not a secret manager. Secrets must be inject
 
 ## Known release gaps
 
-- CI definitions do not yet include software-composition analysis, secret scanning, or container-image vulnerability scanning, and the newly added workflows have not yet been proven on a hosted runner.
+- Hosted CI run `32328281486` proves backend, web, Android, and live API-contract jobs on GitHub's runner. Software-composition analysis, secret scanning, and container-image vulnerability scanning are still absent.
 - Seller/Admin static-host CSP and deployment security headers are not represented or live-verified in this repository. Apply and test CSP, frame, MIME, referrer, permissions, HSTS, and cache policy at the hosting/proxy layer.
 - Rate-limit fallback protects one process during Redis failure but loses globally coordinated counts across replicas; edge protection and Redis availability monitoring remain necessary.
 - Application rate-limit identity is currently `request.remoteAddr`. Configure forwarded-header trust only at the real proxy and review shared-NAT/IPv6 behavior; combine it with edge policy rather than treating an untrusted forwarded IP as identity.
-- Only COD and local mock payment/shipping adapters exist. Real provider signatures, secrets, callback network policy, refunds, failure handling, reconciliation, and compliance need a provider-specific review before exposure.
+- Only COD and local mock payment/shipping adapters exist. Production rejects both mocks, and Storefront reads the public backend capability list so unavailable methods are not presented. Real provider signatures, secrets, callback network policy, refunds, failure handling, reconciliation, and compliance still need a provider-specific review before exposure.
 - Android production push lacks authenticated backend device-token registration/rotation/revocation and credentialed FCM delivery.
 - In-process after-commit notification/provider effects are not a durable outbox. Introduce persisted retry/idempotent workers before promising crash-safe external delivery.
 - A final attack-oriented review of every required scenario and a real deployment penetration/security review remain acceptance work; do not infer production security from local green tests.

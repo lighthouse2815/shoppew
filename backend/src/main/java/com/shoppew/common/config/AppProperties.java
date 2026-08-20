@@ -22,6 +22,7 @@ public record AppProperties(
         Email email,
         Storage storage,
         Payment payment,
+        Shipping shipping,
         RateLimit rateLimit) {
 
     public record Email(
@@ -39,6 +40,8 @@ public record AppProperties(
     public record Payment(
             boolean mockEnabled,
             String mockWebhookSecret) {}
+
+    public record Shipping(boolean mockEnabled) {}
 
     public record RateLimit(
             boolean enabled,

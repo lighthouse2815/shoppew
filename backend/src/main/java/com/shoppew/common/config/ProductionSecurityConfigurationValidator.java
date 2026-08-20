@@ -34,8 +34,14 @@ public class ProductionSecurityConfigurationValidator implements InitializingBea
         List<String> unsafe = new ArrayList<>();
         if (!properties.secureCookies()) unsafe.add("APP_SECURE_COOKIES");
         if (!properties.emailVerificationRequired()) unsafe.add("APP_EMAIL_VERIFICATION_REQUIRED");
+        if (properties.email() == null || !properties.email().deliveryEnabled()) {
+            unsafe.add("APP_EMAIL_DELIVERY_ENABLED");
+        }
         if (properties.payment() == null || properties.payment().mockEnabled()) {
             unsafe.add("APP_MOCK_PAYMENT_ENABLED");
+        }
+        if (properties.shipping() == null || properties.shipping().mockEnabled()) {
+            unsafe.add("APP_MOCK_SHIPPING_ENABLED");
         }
         AppProperties.RateLimit rateLimit = properties.rateLimit();
         if (rateLimit == null || !rateLimit.enabled()) {

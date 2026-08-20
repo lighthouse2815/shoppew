@@ -5,9 +5,11 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "app.shipping.mock-enabled", havingValue = "true", matchIfMissing = true)
 public class MockShippingProvider implements ShippingProvider {
 
     private final AppProperties properties;

@@ -51,8 +51,8 @@ The production validator refuses to boot with known development/default secrets,
 | Redis | `REDIS_HOST`, `REDIS_PORT`; when required use Spring runtime properties such as `SPRING_DATA_REDIS_USERNAME`, `SPRING_DATA_REDIS_PASSWORD`, and `SPRING_DATA_REDIS_SSL_ENABLED=true` |
 | Object storage | `S3_ENDPOINT`, HTTPS `S3_PUBLIC_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
 | Web/security | unpredictable `APP_JWT_SECRET` of at least 64 bytes, `APP_SECURE_COOKIES=true`, exact HTTPS `APP_CORS_ALLOWED_ORIGINS`, HTTPS `APP_WEB_BASE_URL` |
-| Identity/email | `APP_EMAIL_VERIFICATION_REQUIRED=true`, `APP_EMAIL_DELIVERY_ENABLED=true`, verified `APP_EMAIL_FROM`, `MAIL_HOST`, `MAIL_PORT`, and provider authentication/TLS settings |
-| Commerce | `APP_MOCK_PAYMENT_ENABLED=false`, `APP_RATE_LIMIT_ENABLED=true`, reviewed rate thresholds, `APP_PLATFORM_FEE_RATE`, `APP_TIME_ZONE=Asia/Ho_Chi_Minh` |
+| Identity/email | `APP_EMAIL_VERIFICATION_REQUIRED=true`, `APP_EMAIL_DELIVERY_ENABLED=true`, verified `APP_EMAIL_FROM`, `MAIL_HOST`, `MAIL_PORT`, and provider authentication/TLS settings; production refuses disabled delivery |
+| Commerce | `APP_MOCK_PAYMENT_ENABLED=false`, `APP_MOCK_SHIPPING_ENABLED=false`, `APP_RATE_LIMIT_ENABLED=true`, reviewed rate thresholds, `APP_PLATFORM_FEE_RATE`, `APP_TIME_ZONE=Asia/Ho_Chi_Minh` |
 | Operations | leave `APP_OPENAPI_ENABLED=false` unless a separately authenticated private operator route requires it |
 
 For authenticated SMTP, Spring Boot also accepts runtime properties such as `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`, and `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`. Match these to the chosen provider; never put them in a `NEXT_PUBLIC_*` or `VITE_*` variable.
@@ -80,12 +80,12 @@ Changing a public variable requires a rebuild/redeploy. Do not inject secrets in
 | Redis | Cache/rate-limit coordination | Protected managed instance and capacity/eviction monitoring; during outage the bounded fallback enforces per replica rather than globally |
 | Media | S3-compatible provider interface and MinIO local implementation | Private write credentials, public/CDN read policy, CORS, lifecycle/retention, malware/content moderation policy |
 | Email | SMTP sender, locally verified with Mailpit | Authenticated TLS SMTP, verified sender/domain, bounce/complaint handling and real delivery test |
-| Payment | COD and credentialed-signature local mock path | A real payment/refund provider and credentials if online payment is offered; keep the mock provider disabled |
-| Shipping | Local `MOCK_STANDARD` provider | Real quotation/label/tracking provider and credentials before advertising production shipping integration |
+| Payment | COD and credentialed-signature local mock path; production disables the mock and clients use backend capabilities | A real payment/refund provider and credentials if online payment is offered; keep the mock provider disabled |
+| Shipping | Local `MOCK_STANDARD` provider; production disables it and checkout blocks cleanly when no real method is registered | Real quotation/label/tracking provider and credentials before advertising production shipping integration |
 | Push | In-app notifications plus local `SKIPPED` push adapter | Authenticated device registration/rotation/revocation, FCM credentials, retry policy and real-device delivery evidence |
 | Observability | readiness/liveness/info and authenticated Prometheus endpoint | Central logs, metrics scraper, dashboards, alerting, tracing/retention policy and on-call ownership |
 
-COD can be tested without an online payment credential, but the local mock shipping provider is still not a production carrier integration. Keep unavailable providers out of user-visible choices.
+COD can be tested without an online payment credential, but the local mock shipping provider is still not a production carrier integration. `GET /api/v1/public/commerce-capabilities` is the source for checkout choices; Storefront renders only those methods, and Android exposes COD only until another real method is integrated. Production fails fast if either local mock is enabled.
 
 ## Database migration, backup, and rollback
 
