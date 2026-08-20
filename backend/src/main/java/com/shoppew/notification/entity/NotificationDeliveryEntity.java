@@ -28,6 +28,8 @@ public class NotificationDeliveryEntity {
     @Column(name = "attempted_at") private Instant attemptedAt;
     @Column(name = "delivered_at") private Instant deliveredAt;
     @Column(name = "failure_message", length = 500) private String failureMessage;
+    @Column(name = "attempt_count", nullable = false) private int attemptCount;
+    @Column(name = "next_attempt_at") private Instant nextAttemptAt;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     protected NotificationDeliveryEntity() {}
     public static NotificationDeliveryEntity inApp(NotificationEntity notification, Instant now) {
@@ -46,15 +48,24 @@ public class NotificationDeliveryEntity {
     public NotificationEntity getNotification() { return notification; }
     public Channel getChannel() { return channel; }
     public Status getStatus() { return status; }
+    public int getAttemptCount() { return attemptCount; }
+    public Instant getNextAttemptAt() { return nextAttemptAt; }
+    public void beginAttempt(Instant now) {
+        this.status = Status.SENT;
+        this.attemptCount += 1;
+        this.attemptedAt = now;
+        this.nextAttemptAt = null;
+    }
     public void delivered(String providerReference, Instant now) {
         this.status = Status.DELIVERED; this.providerReference = providerReference;
-        this.attemptedAt = now; this.deliveredAt = now; this.failureMessage = null;
+        this.attemptedAt = now; this.deliveredAt = now; this.failureMessage = null; this.nextAttemptAt = null;
     }
     public void skipped(String reason, Instant now) {
         this.status = Status.SKIPPED; this.attemptedAt = now; this.failureMessage = truncate(reason);
     }
-    public void failed(String reason, Instant now) {
-        this.status = Status.FAILED; this.attemptedAt = now; this.failureMessage = truncate(reason);
+    public void failed(String reason, Instant now, Instant nextAttemptAt) {
+        this.status = Status.FAILED; this.attemptedAt = now;
+        this.failureMessage = truncate(reason); this.nextAttemptAt = nextAttemptAt;
     }
     private String truncate(String value) {
         if (value == null) return null;

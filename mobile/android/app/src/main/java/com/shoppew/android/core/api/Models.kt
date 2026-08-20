@@ -526,6 +526,25 @@ data class NotificationItem(
 data class UnreadCount(val count: Long = 0)
 
 @Serializable
+data class PushDeviceRequest(
+    val platform: String = "ANDROID",
+    val targetType: String = "FID",
+    val target: String,
+)
+
+@Serializable
+data class PushDeviceRevocationRequest(val target: String)
+
+@Serializable
+data class PushDevice(
+    val id: String = "",
+    val platform: String = "ANDROID",
+    val targetType: String = "FID",
+    val active: Boolean = false,
+    val lastSeenAt: String? = null,
+)
+
+@Serializable
 data class ReviewRequest(val orderItemId: String, val rating: Int, val content: String? = null)
 
 @Serializable

@@ -283,8 +283,10 @@ Chat message types are `TEXT`, `IMAGE`, `PRODUCT`, and `ORDER`. Product and orde
 | Seller | `/api/v1/seller/shops/{shopId}/reviews/{reviewId}/reply` | Reply to a review only for an authorized owned/member shop |
 | Admin | `/api/v1/admin/reviews/{reviewId}/{action}` | Publish, hide, or remove review content |
 | Customer | `/api/v1/notifications` | Page in-app notifications, read unread count, mark one read, or mark all read |
+| Customer | `PUT /api/v1/notifications/devices/current` | Idempotently register the current Android FID; ownership is derived from the access token and the target is encrypted at rest |
+| Customer | `DELETE /api/v1/notifications/devices/current` | Revoke only the current account's matching FID from a validated JSON body, used before Android logout; the target is never placed in the URL |
 
-Review rating is constrained to 1–5. Eligibility is derived from the authenticated customer's immutable order item and a `COMPLETED` order; clients cannot claim purchase status, product, or shop. Published review mutations and moderation recompute product/shop rating average and count inside the transaction. Order and chat events persist owned in-app notifications and separate per-channel delivery records. SMTP delivery is verified locally; the local push adapter records `SKIPPED` until backend device-token registration and a credentialed push provider exist. See [ENGAGEMENT_FLOW.md](ENGAGEMENT_FLOW.md).
+Review rating is constrained to 1–5. Eligibility is derived from the authenticated customer's immutable order item and a `COMPLETED` order; clients cannot claim purchase status, product, or shop. Published review mutations and moderation recompute product/shop rating average and count inside the transaction. Order and chat events persist owned in-app notifications and separate per-channel delivery records. SMTP delivery is verified locally; push registration/revocation and bounded persisted retry are implemented, while real FCM credentials and physical-device delivery remain deployment gates. See [ENGAGEMENT_FLOW.md](ENGAGEMENT_FLOW.md).
 
 ## Refunds, disputes, finance, audit, and analytics
 

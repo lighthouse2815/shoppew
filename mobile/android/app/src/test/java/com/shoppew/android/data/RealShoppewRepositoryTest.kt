@@ -7,6 +7,7 @@ import com.shoppew.android.core.api.ProductSummary
 import com.shoppew.android.core.api.ShoppewApi
 import com.shoppew.android.core.network.AccessTokenStore
 import com.shoppew.android.core.network.RefreshSession
+import com.shoppew.android.core.push.PushInstallation
 import com.shoppew.android.data.local.CatalogCache
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.test.runTest
@@ -32,6 +33,7 @@ class RealShoppewRepositoryTest {
     private lateinit var tokens: AccessTokenStore
     private lateinit var session: TestRefreshSession
     private lateinit var cache: MemoryCatalogCache
+    private lateinit var pushInstallation: TestPushInstallation
     private lateinit var repository: RealShoppewRepository
 
     @Before
@@ -40,8 +42,9 @@ class RealShoppewRepositoryTest {
         tokens = AccessTokenStore()
         session = TestRefreshSession()
         cache = MemoryCatalogCache()
+        pushInstallation = TestPushInstallation()
         val api = createApi(server)
-        repository = RealShoppewRepository(api, api, tokens, session, cache)
+        repository = RealShoppewRepository(api, api, tokens, session, cache, pushInstallation)
     }
 
     @After
@@ -90,6 +93,46 @@ class RealShoppewRepositoryTest {
         assertEquals("Dữ liệu chưa hợp lệ", error.message)
         assertEquals("Email chưa đúng định dạng", error.fieldErrors["email"])
         assertNull(tokens.value)
+    }
+
+    @Test
+    fun `authenticated session registers FID and logout revokes it before the session`() = runTest {
+        pushInstallation.target = "firebase-installation-id-shoppew-test-2026"
+        server.enqueue(
+            jsonResponse(
+                """
+                {"success":true,"data":{"accessToken":"access-push","user":{"id":"user-push","email":"push@example.test","displayName":"Push User","roles":["CUSTOMER"],"status":"ACTIVE","emailVerified":true}}}
+                """.trimIndent(),
+            ),
+        )
+        server.enqueue(
+            jsonResponse(
+                """
+                {"success":true,"data":{"id":"device-1","platform":"ANDROID","targetType":"FID","active":true}}
+                """.trimIndent(),
+            ),
+        )
+        server.enqueue(jsonResponse("""{"success":true,"data":{"revoked":true}}"""))
+        server.enqueue(jsonResponse("""{"success":true,"data":{"loggedOut":true}}"""))
+
+        assertTrue(repository.login("push@example.test", "correct-password").isSuccess)
+        val login = server.takeRequest(1, TimeUnit.SECONDS)
+        val registration = server.takeRequest(1, TimeUnit.SECONDS)
+        assertEquals("/api/v1/auth/login", login?.path)
+        assertEquals("/api/v1/notifications/devices/current", registration?.path)
+        val registrationBody = registration!!.body.readUtf8()
+        assertTrue(registrationBody.contains("\"targetType\":\"FID\""))
+        assertTrue(registrationBody.contains("firebase-installation-id-shoppew-test-2026"))
+
+        repository.logout()
+
+        val revocation = server.takeRequest(1, TimeUnit.SECONDS)
+        val logout = server.takeRequest(1, TimeUnit.SECONDS)
+        assertEquals("/api/v1/notifications/devices/current", revocation?.path)
+        assertTrue(revocation!!.body.readUtf8().contains("firebase-installation-id-shoppew-test-2026"))
+        assertEquals("/api/v1/auth/logout", logout?.path)
+        assertNull(tokens.value)
+        assertTrue(session.cleared)
     }
 
     @Test
@@ -162,6 +205,11 @@ private class TestRefreshSession(var present: Boolean = false) : RefreshSession 
         present = false
         cleared = true
     }
+}
+
+private class TestPushInstallation(var target: String? = null) : PushInstallation {
+    override suspend fun current(): String? = target
+    override fun cached(): String? = target
 }
 
 private class MemoryCatalogCache : CatalogCache {

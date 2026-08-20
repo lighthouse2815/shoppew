@@ -86,7 +86,7 @@ There is no Kafka/RabbitMQ requirement and no durable outbox implementation toda
 
 The native client separates Compose screens/presentation state, repository/domain operations, Retrofit/OkHttp transport, and Room read caching. Hilt provides dependencies; ViewModels expose StateFlow to Compose. Catalog/category reads may fall back to Room, but cart, account, checkout, order, payment, and other mutations are never silently queued while offline.
 
-An OkHttp authenticator serializes one refresh attempt, secure storage encrypts the rotating refresh cookie with an Android Keystore key, and release builds disallow cleartext networking. Notification/deep-link components are present, while production FCM registration/provider delivery remains an explicit external-integration gap. Android verification uses a USB-connected physical phone, not an emulator.
+An OkHttp authenticator serializes one refresh attempt, secure storage encrypts the rotating refresh cookie with an Android Keystore key, and release builds disallow cleartext networking. Android registers its Firebase Installation ID after authenticated session establishment and revokes it before logout; the backend encrypts the target, sends through a conditional Firebase Admin adapter, and persists bounded retries. Firebase project credentials and a current physical-device delivery test remain external release gates. Android device verification uses a USB-connected physical phone, not an emulator.
 
 ## Future extraction strategy
 

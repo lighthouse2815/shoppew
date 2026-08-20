@@ -22,6 +22,8 @@ import com.shoppew.android.core.api.PageResponse
 import com.shoppew.android.core.api.ProductDetail
 import com.shoppew.android.core.api.ProductSummary
 import com.shoppew.android.core.api.Profile
+import com.shoppew.android.core.api.PushDeviceRequest
+import com.shoppew.android.core.api.PushDeviceRevocationRequest
 import com.shoppew.android.core.api.RegisterRequest
 import com.shoppew.android.core.api.Review
 import com.shoppew.android.core.api.ReviewRequest
@@ -31,6 +33,7 @@ import com.shoppew.android.core.api.UpdateProfileRequest
 import com.shoppew.android.core.api.WishlistEntry
 import com.shoppew.android.core.network.AccessTokenStore
 import com.shoppew.android.core.network.RefreshSession
+import com.shoppew.android.core.push.PushInstallation
 import com.shoppew.android.data.local.CatalogCache
 import java.io.IOException
 import java.util.UUID
@@ -89,17 +92,18 @@ class RealShoppewRepository(
     private val tokens: AccessTokenStore,
     private val cookies: RefreshSession,
     private val catalogCache: CatalogCache,
+    private val pushInstallation: PushInstallation,
 ) : ShoppewRepository {
     override val hasRefreshSession: Boolean get() = cookies.hasRefreshSession()
 
     override suspend fun restoreSession(): Result<AuthUser> = call {
         require(hasRefreshSession) { "Chưa có phiên đăng nhập" }
         val auth = publicApi.refresh().dataOrThrow()
-        saveAuth(auth)
+        saveAuthAndRegisterPush(auth)
     }
 
     override suspend fun login(email: String, password: String): Result<AuthUser> = call {
-        saveAuth(publicApi.login(LoginRequest(email.trim(), password)).dataOrThrow())
+        saveAuthAndRegisterPush(publicApi.login(LoginRequest(email.trim(), password)).dataOrThrow())
     }
 
     override suspend fun register(
@@ -108,10 +112,13 @@ class RealShoppewRepository(
         displayName: String,
         phone: String?,
     ): Result<AuthUser> = call {
-        saveAuth(publicApi.register(RegisterRequest(email.trim(), password, displayName.trim(), phone?.trim())).dataOrThrow())
+        saveAuthAndRegisterPush(publicApi.register(RegisterRequest(email.trim(), password, displayName.trim(), phone?.trim())).dataOrThrow())
     }
 
     override suspend fun logout() {
+        pushInstallation.cached()?.let { target ->
+            runCatching { api.unregisterPushDevice(PushDeviceRevocationRequest(target)) }
+        }
         runCatching { api.logout() }
         tokens.clear()
         cookies.clear()
@@ -199,6 +206,15 @@ class RealShoppewRepository(
         val token = auth.accessToken ?: throw ShoppewException("AUTH_TOKEN_MISSING", "Máy chủ không trả về access token")
         val user = auth.user ?: throw ShoppewException("AUTH_USER_MISSING", "Máy chủ không trả về tài khoản")
         tokens.update(token)
+        return user
+    }
+
+    private suspend fun saveAuthAndRegisterPush(auth: AuthResponse): AuthUser {
+        val user = saveAuth(auth)
+        runCatching {
+            val target = pushInstallation.current() ?: return@runCatching
+            api.registerPushDevice(PushDeviceRequest(target = target)).dataOrThrow()
+        }
         return user
     }
 

@@ -101,6 +101,10 @@ public class AbuseRateLimitFilter extends OncePerRequestFilter {
                 || path.endsWith("/images"))) {
             return new Rule("sensitive-mutation", limits.sensitiveMutationPerMinute());
         }
+        if (("PUT".equals(method) || "DELETE".equals(method))
+                && path.equals("/api/v1/notifications/devices/current")) {
+            return new Rule("sensitive-mutation", limits.sensitiveMutationPerMinute());
+        }
         return null;
     }
 

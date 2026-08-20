@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.HTTP
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -140,6 +141,12 @@ interface ShoppewApi {
 
     @POST("api/v1/notifications/read-all")
     suspend fun readAllNotifications(): ApiEnvelope<UnreadCount>
+
+    @PUT("api/v1/notifications/devices/current")
+    suspend fun registerPushDevice(@Body request: PushDeviceRequest): ApiEnvelope<PushDevice>
+
+    @HTTP(method = "DELETE", path = "api/v1/notifications/devices/current", hasBody = true)
+    suspend fun unregisterPushDevice(@Body request: PushDeviceRevocationRequest): ApiEnvelope<Map<String, Boolean>>
 
     @GET("api/v1/reviews/me")
     suspend fun myReviews(

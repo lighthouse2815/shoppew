@@ -41,13 +41,11 @@ The debug base URL is a build-time setting. Release builds use `SHOPPEW_API_BASE
 
 In-app notifications come from the authenticated backend timeline. Android 13+ notification permission is requested only from the Notifications screen after an explicit tap; the application does not prompt on launch. The screen distinguishes granted, denied, permanently blocked, and settings-return states.
 
-The application contains the FCM receiving service, notification channel, local token holder, and typed deep-link routing for product, order, and notification destinations. This is a routing foundation, not proof of production push delivery:
+The application contains the FCM receiving service, notification channel, Firebase Installation ID (FID) lifecycle, and typed deep-link routing for product, order, and notification destinations. After refresh/login/registration succeeds, Android resolves its current FID and idempotently registers it through the authenticated API. Logout sends the cached FID in a validated JSON body and revokes it before the refresh session is cleared, so the identifier is not exposed in a URL. FCM rotates its lower-level registration token independently; the backend targets the stable FID, and the FID itself is never treated as authentication.
 
-- there is no authenticated backend endpoint that registers or rotates a device FCM token;
-- no credentialed FCM provider is configured in the backend;
-- the local `PushNotificationSender` records delivery as `SKIPPED` with an explicit reason.
+The backend stores only a SHA-256 target hash plus an AES-256-GCM encrypted target, transfers a reused installation to the currently authenticated account, limits active targets per account, and deactivates unregistered FIDs reported by FCM. Outbound email/push failures are persisted and retried with bounded exponential delay up to five attempts.
 
-Production push remains a release gap until token lifecycle, logout/revocation, provider credentials, delivery/retry behavior, and a real end-to-end push are implemented and verified.
+This closes the repository-owned lifecycle, but it is not proof of production push delivery. A release still needs an actual Firebase Android application configuration, FCM HTTP v1 enabled, `APP_PUSH_DELIVERY_ENABLED=true`, a project ID, Application Default Credentials with least-privilege messaging access, and a real-device end-to-end delivery. When delivery is disabled, the local sender records `SKIPPED` explicitly.
 
 ## Verification
 
@@ -61,7 +59,9 @@ Run the deterministic local gates from `mobile/android`:
 .\gradlew.bat connectedDebugAndroidTest -PSHOPPEW_DEBUG_API_BASE_URL=http://127.0.0.1:28080/
 ```
 
-Current evidence from 2026-08-11:
+The earlier physical-device evidence below is from 2026-08-11. Current FID registration/revocation changes are covered by JVM/backend tests and a debug build; they have not been installed on the phone without a new explicit device-QA authorization.
+
+Current earlier device evidence:
 
 - 24 JVM tests passed across secure session storage, notification permission state, real repository parsing/error handling, formatters, commerce ViewModels, and session restoration.
 - `lintDebug`, debug assembly, and Android-test compilation completed successfully.

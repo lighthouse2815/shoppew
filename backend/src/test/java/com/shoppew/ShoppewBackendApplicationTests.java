@@ -15,6 +15,7 @@ import com.shoppew.auth.email.AuthenticationEmailGateway;
 import com.shoppew.common.exception.ApiException;
 import com.shoppew.inventory.service.InventoryReservationService;
 import com.shoppew.media.StorageService;
+import com.shoppew.notification.service.PushTargetCodec;
 import com.shoppew.user.entity.UserEntity;
 import com.shoppew.user.entity.UserProfileEntity;
 import com.shoppew.user.entity.UserRole;
@@ -80,6 +81,9 @@ class ShoppewBackendApplicationTests {
     @Autowired
     private InventoryReservationService inventoryReservationService;
 
+    @Autowired
+    private PushTargetCodec pushTargetCodec;
+
     @MockitoBean
     private AuthenticationEmailGateway authenticationEmailGateway;
 
@@ -117,6 +121,75 @@ class ShoppewBackendApplicationTests {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("AUTHENTICATION_REQUIRED"))
                 .andExpect(jsonPath("$.error.details").isArray());
+    }
+
+    @Test
+    void pushDeviceRegistrationEncryptsTargetTransfersOwnershipAndRevokes() throws Exception {
+        Instant now = Instant.now(clock);
+        UserEntity first = userRepository.saveAndFlush(UserEntity.register(
+                "push-owner-one@example.test",
+                null,
+                passwordEncoder.encode("PushDevice2026!"),
+                UserStatus.ACTIVE,
+                now));
+        profileRepository.saveAndFlush(UserProfileEntity.create(first, "Push Owner One", now));
+        UserEntity second = userRepository.saveAndFlush(UserEntity.register(
+                "push-owner-two@example.test",
+                null,
+                passwordEncoder.encode("PushDevice2026!"),
+                UserStatus.ACTIVE,
+                now));
+        profileRepository.saveAndFlush(UserProfileEntity.create(second, "Push Owner Two", now));
+        String fid = "firebase-installation-id-for-shoppew-integration-test-2026";
+        String request = """
+                {"platform":"ANDROID","targetType":"FID","target":"%s"}
+                """.formatted(fid);
+
+        mockMvc.perform(put("/api/v1/notifications/devices/current")
+                        .with(jwt().jwt(token -> token.subject(first.getId().toString())
+                                .claim("sid", UUID.randomUUID().toString())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.platform").value("ANDROID"))
+                .andExpect(jsonPath("$.data.targetType").value("FID"))
+                .andExpect(jsonPath("$.data.target").doesNotExist());
+
+        String targetHash = jdbcTemplate.queryForObject(
+                "select target_hash from push_devices where user_id = ?", String.class, first.getId());
+        String encryptedTarget = jdbcTemplate.queryForObject(
+                "select encrypted_target from push_devices where user_id = ?", String.class, first.getId());
+        assertThat(targetHash).isNotEqualTo(fid);
+        assertThat(encryptedTarget).doesNotContain(fid);
+        assertThat(pushTargetCodec.decrypt(encryptedTarget, targetHash)).isEqualTo(fid);
+
+        mockMvc.perform(put("/api/v1/notifications/devices/current")
+                        .with(jwt().jwt(token -> token.subject(second.getId().toString())
+                                .claim("sid", UUID.randomUUID().toString())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from push_devices where target_hash = ?", Long.class, targetHash)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select user_id from push_devices where target_hash = ?", UUID.class, targetHash)).isEqualTo(second.getId());
+
+        mockMvc.perform(delete("/api/v1/notifications/devices/current")
+                        .with(jwt().jwt(token -> token.subject(first.getId().toString())
+                                .claim("sid", UUID.randomUUID().toString())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"target\":\"" + fid + "\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("PUSH_DEVICE_NOT_FOUND"));
+        mockMvc.perform(delete("/api/v1/notifications/devices/current")
+                        .with(jwt().jwt(token -> token.subject(second.getId().toString())
+                                .claim("sid", UUID.randomUUID().toString())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"target\":\"" + fid + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revoked").value(true));
+        assertThat(jdbcTemplate.queryForObject(
+                "select active from push_devices where target_hash = ?", Boolean.class, targetHash)).isFalse();
     }
 
     @Test

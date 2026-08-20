@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.shoppew.android.MainActivity
@@ -18,27 +19,38 @@ import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
+
+interface PushInstallation {
+    suspend fun current(): String?
+    fun cached(): String?
+}
 
 @Singleton
-class PushTokenStore @Inject constructor(
+class FirebasePushInstallation @Inject constructor(
     @ApplicationContext context: Context,
-) {
+) : PushInstallation {
     private val preferences = context.getSharedPreferences("push_registration", Context.MODE_PRIVATE)
 
-    fun save(token: String) {
-        preferences.edit().putString(KEY_TOKEN, token).apply()
+    override suspend fun current(): String? = suspendCancellableCoroutine { continuation ->
+        FirebaseInstallations.getInstance().id.addOnCompleteListener { task ->
+            val fid = task.takeIf { it.isSuccessful }?.result?.takeIf(String::isNotBlank)
+            if (fid != null) preferences.edit().putString(KEY_FID, fid).apply()
+            if (continuation.isActive) continuation.resume(fid ?: cached())
+        }
     }
 
-    fun current(): String? = preferences.getString(KEY_TOKEN, null)
+    override fun cached(): String? = preferences.getString(KEY_FID, null)
 
     private companion object {
-        const val KEY_TOKEN = "fcm_token"
+        const val KEY_FID = "firebase_installation_id"
     }
 }
 
 @Singleton
 class PushNotificationManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val routeResolver: PushRouteResolver,
 ) {
     private val manager = context.getSystemService(NotificationManager::class.java)
@@ -95,14 +107,7 @@ class PushNotificationManager @Inject constructor(
 
 @AndroidEntryPoint
 class ShoppewMessagingService : FirebaseMessagingService() {
-    @Inject lateinit var tokenStore: PushTokenStore
     @Inject lateinit var notifications: PushNotificationManager
-
-    override fun onNewToken(token: String) {
-        tokenStore.save(token)
-        // Registration with the authenticated backend is intentionally performed by the app's
-        // session layer once a server endpoint is available; the token is never treated as auth.
-    }
 
     override fun onMessageReceived(message: RemoteMessage) {
         notifications.show(message)

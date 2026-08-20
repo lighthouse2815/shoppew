@@ -55,7 +55,7 @@ The production validator refuses to boot with known development/default secrets,
 | PostgreSQL | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`; tune `DB_POOL_MAX_SIZE` and `DB_POOL_MIN_IDLE` against the database connection budget |
 | Redis | `REDIS_HOST`, `REDIS_PORT`; when required use Spring runtime properties such as `SPRING_DATA_REDIS_USERNAME`, `SPRING_DATA_REDIS_PASSWORD`, and `SPRING_DATA_REDIS_SSL_ENABLED=true` |
 | Object storage | `S3_ENDPOINT`, HTTPS `S3_PUBLIC_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
-| Web/security | unpredictable `APP_JWT_SECRET` of at least 64 bytes, `APP_SECURE_COOKIES=true`, exact HTTPS `APP_CORS_ALLOWED_ORIGINS`, HTTPS `APP_WEB_BASE_URL` |
+| Web/security | unpredictable `APP_JWT_SECRET` of at least 64 bytes, Base64 32-byte `APP_PUSH_ENCRYPTION_KEY`, `APP_SECURE_COOKIES=true`, exact HTTPS `APP_CORS_ALLOWED_ORIGINS`, HTTPS `APP_WEB_BASE_URL` |
 | Identity/email | `APP_EMAIL_VERIFICATION_REQUIRED=true`, `APP_EMAIL_DELIVERY_ENABLED=true`, verified `APP_EMAIL_FROM`, `MAIL_HOST`, `MAIL_PORT`, and provider authentication/TLS settings; production refuses disabled delivery |
 | Commerce | `APP_MOCK_PAYMENT_ENABLED=false`, `APP_MOCK_SHIPPING_ENABLED=false`, `APP_RATE_LIMIT_ENABLED=true`, reviewed rate thresholds, `APP_PLATFORM_FEE_RATE`, `APP_TIME_ZONE=Asia/Ho_Chi_Minh` |
 | Operations | leave `APP_OPENAPI_ENABLED=false` unless a separately authenticated private operator route requires it |
@@ -75,19 +75,19 @@ Public web values are baked into artifacts and must be supplied before the relev
 | Admin | `VITE_API_URL=https://<api-origin>` and `VITE_STOREFRONT_URL=https://<storefront-origin>` |
 | Android release | Gradle property `SHOPPEW_API_BASE_URL=https://<api-origin>/` |
 
-Changing a public variable requires a rebuild/redeploy. Do not inject secrets into frontend or Android builds. The Android project does not include a repository-owned release signing identity; configure signing in a protected external build environment. Production push also requires Firebase application configuration, backend device-token lifecycle, provider credentials, logout/revocation, and delivery verification that are not implemented yet.
+Changing a public variable requires a rebuild/redeploy. Do not inject secrets into frontend or Android builds. The Android project does not include a repository-owned release signing identity; configure signing in a protected external build environment. Production push requires Firebase Android application configuration, FCM HTTP v1, `APP_PUSH_DELIVERY_ENABLED=true`, `APP_PUSH_FIREBASE_PROJECT_ID`, and Application Default Credentials supplied through the platform (for example `GOOGLE_APPLICATION_CREDENTIALS` pointing to a mounted secret). Backend FID registration/revocation, encrypted storage, provider dispatch, invalid-target cleanup, and bounded retry are implemented; real credentials and physical-device delivery are not committed or claimed.
 
 ## External-service readiness
 
 | Capability | Repository boundary | Required before claiming production readiness |
 | --- | --- | --- |
-| Database | PostgreSQL 17 schema, Flyway V1–V11 | HA/backup policy, restore drill, monitoring, least-privilege roles; ensure `pg_trgm` can be installed before V11 |
+| Database | PostgreSQL 17 schema, Flyway V1–V12 | HA/backup policy, restore drill, monitoring, least-privilege roles; ensure `pg_trgm` can be installed before V11 |
 | Redis | Cache/rate-limit coordination | Protected managed instance and capacity/eviction monitoring; during outage the bounded fallback enforces per replica rather than globally |
 | Media | S3-compatible provider interface and MinIO local implementation | Private write credentials, public/CDN read policy, CORS, lifecycle/retention, malware/content moderation policy |
 | Email | SMTP sender, locally verified with Mailpit | Authenticated TLS SMTP, verified sender/domain, bounce/complaint handling and real delivery test |
 | Payment | COD and credentialed-signature local mock path; production disables the mock and clients use backend capabilities | A real payment/refund provider and credentials if online payment is offered; keep the mock provider disabled |
 | Shipping | Local `MOCK_STANDARD` provider; production disables it and checkout blocks cleanly when no real method is registered | Real quotation/label/tracking provider and credentials before advertising production shipping integration |
-| Push | In-app notifications plus local `SKIPPED` push adapter | Authenticated device registration/rotation/revocation, FCM credentials, retry policy and real-device delivery evidence |
+| Push | Authenticated FID registration/revocation, AES-GCM target storage, conditional Firebase Admin sender, invalid-target cleanup, PostgreSQL retry state, plus local `SKIPPED` adapter | Firebase project/client configuration, least-privilege ADC, FCM HTTP v1, monitoring and real-device delivery evidence |
 | Observability | readiness/liveness/info and authenticated Prometheus endpoint | Central logs, metrics scraper, dashboards, alerting, tracing/retention policy and on-call ownership |
 
 COD can be tested without an online payment credential, but the local mock shipping provider is still not a production carrier integration. `GET /api/v1/public/commerce-capabilities` is the source for checkout choices; Storefront renders only those methods, and Android exposes COD only until another real method is integrated. Production fails fast if either local mock is enabled.

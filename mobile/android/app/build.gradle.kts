@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("com.google.dagger.hilt.android")
@@ -5,6 +7,11 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+val firebaseConfiguration = file("google-services.json")
+if (firebaseConfiguration.isFile) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
@@ -49,9 +56,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -61,6 +65,12 @@ android {
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -96,7 +106,9 @@ dependencies {
     kapt("androidx.room:room-compiler:2.7.2")
     implementation("com.google.dagger:hilt-android:2.57.1")
     kapt("com.google.dagger:hilt-compiler:2.57.1")
-    implementation("com.google.firebase:firebase-messaging:24.1.2")
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    implementation("com.google.firebase:firebase-installations")
+    implementation("com.google.firebase:firebase-messaging")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
@@ -113,4 +125,12 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        require(firebaseConfiguration.isFile) {
+            "Release push requires mobile/android/app/google-services.json supplied by the protected build environment"
+        }
+    }
 }

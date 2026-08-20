@@ -228,6 +228,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/devices/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["registerDevice"];
+        post?: never;
+        delete: operations["unregisterDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cart/selection": {
         parameters: {
             query?: never;
@@ -2976,6 +2992,31 @@ export interface components {
             rating?: number;
             content?: string;
         };
+        PushDeviceRequest: {
+            /** @enum {string} */
+            platform: "ANDROID" | "IOS" | "WEB";
+            /** @enum {string} */
+            targetType: "FID" | "TOKEN";
+            target: string;
+        };
+        ApiResponsePushDeviceResponse: {
+            success?: boolean;
+            data?: components["schemas"]["PushDeviceResponse"];
+            error?: components["schemas"]["ApiError"];
+            /** Format: date-time */
+            timestamp?: string;
+        };
+        PushDeviceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            platform?: "ANDROID" | "IOS" | "WEB";
+            /** @enum {string} */
+            targetType?: "FID" | "TOKEN";
+            active?: boolean;
+            /** Format: date-time */
+            lastSeenAt?: string;
+        };
         CartBulkSelectionRequest: {
             itemIds?: string[];
             selected?: boolean;
@@ -4518,31 +4559,31 @@ export interface components {
             createdAt?: string;
         };
         JsonNode: {
-            binary?: boolean;
-            string?: boolean;
-            boolean?: boolean;
-            double?: boolean;
-            short?: boolean;
-            long?: boolean;
-            int?: boolean;
-            /** @deprecated */
-            textual?: boolean;
-            pojo?: boolean;
-            object?: boolean;
-            floatingPointNumber?: boolean;
             array?: boolean;
             empty?: boolean;
             null?: boolean;
             float?: boolean;
             number?: boolean;
+            missingNode?: boolean;
+            valueNode?: boolean;
+            long?: boolean;
+            binary?: boolean;
+            string?: boolean;
+            pojo?: boolean;
+            short?: boolean;
+            int?: boolean;
+            double?: boolean;
+            boolean?: boolean;
+            /** @deprecated */
+            textual?: boolean;
+            object?: boolean;
             container?: boolean;
-            bigDecimal?: boolean;
             bigInteger?: boolean;
+            integralNumber?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            integralNumber?: boolean;
-            valueNode?: boolean;
-            missingNode?: boolean;
+            bigDecimal?: boolean;
+            floatingPointNumber?: boolean;
             embeddedValue?: boolean;
         };
         PageResponseAuditLogResponse: {
@@ -4578,6 +4619,9 @@ export interface components {
             error?: components["schemas"]["ApiError"];
             /** Format: date-time */
             timestamp?: string;
+        };
+        PushDeviceRevocationRequest: {
+            target: string;
         };
         ApiResponseMapStringInteger: {
             success?: boolean;
@@ -5174,6 +5218,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseReviewResponse"];
+                };
+            };
+        };
+    };
+    registerDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponsePushDeviceResponse"];
+                };
+            };
+        };
+    };
+    unregisterDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushDeviceRevocationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMapStringBoolean"];
                 };
             };
         };

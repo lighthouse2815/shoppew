@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.shoppew.android.core.connectivity.AndroidConnectivityObserver
 import com.shoppew.android.core.connectivity.ConnectivityObserver
 import com.shoppew.android.core.network.NetworkModule
+import com.shoppew.android.core.push.FirebasePushInstallation
+import com.shoppew.android.core.push.PushInstallation
 import com.shoppew.android.data.RealShoppewRepository
 import com.shoppew.android.data.ShoppewRepository
 import com.shoppew.android.data.local.CatalogCache
@@ -49,13 +51,22 @@ object ApplicationModule {
 
     @Provides
     @Singleton
-    fun repository(network: NetworkModule, cache: CatalogCache): ShoppewRepository = RealShoppewRepository(
+    fun repository(
+        network: NetworkModule,
+        cache: CatalogCache,
+        pushInstallation: PushInstallation,
+    ): ShoppewRepository = RealShoppewRepository(
         publicApi = network.publicApi,
         api = network.authenticatedApi,
         tokens = network.accessTokens,
         cookies = network.cookieJar,
         catalogCache = cache,
+        pushInstallation = pushInstallation,
     )
+
+    @Provides
+    @Singleton
+    fun pushInstallation(implementation: FirebasePushInstallation): PushInstallation = implementation
 
     @Provides
     @Singleton

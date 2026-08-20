@@ -23,6 +23,7 @@ public record AppProperties(
         Storage storage,
         Payment payment,
         Shipping shipping,
+        Push push,
         RateLimit rateLimit) {
 
     public record Email(
@@ -42,6 +43,11 @@ public record AppProperties(
             String mockWebhookSecret) {}
 
     public record Shipping(boolean mockEnabled) {}
+
+    public record Push(
+            boolean deliveryEnabled,
+            String projectId,
+            String encryptionKey) {}
 
     public record RateLimit(
             boolean enabled,

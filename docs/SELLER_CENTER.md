@@ -49,7 +49,7 @@ On 2026-08-11:
 
 - ESLint and TypeScript completed without errors; Vitest passed 11/11 tests; the production Vite build completed with a 372.38 kB JavaScript asset and 29.00 kB CSS asset before gzip.
 - PostgreSQL Testcontainers passed the two focused catalog/inventory regressions, including authorized/nonmember attribute-definition reads, OpenAPI discovery, and the inventory list without a search term.
-- The rebuilt Compose backend became healthy with the current Flyway V1–V11 schema.
+- The rebuilt Compose backend became healthy with Flyway V1–V11 during that recorded Seller Center run; the current repository schema is V12.
 - Browser QA authenticated as a real seller and loaded dashboard, products/detail, inventory/history, orders/detail, refunds, disputes, vouchers, promotions, reviews, finance, analytics, addresses, and settings with live smoke data and no application error state.
 - A browser-driven inventory write increased available stock `23 -> 24`, then decreased it `24 -> 23`; both notes appeared in the ledger and the original stock was restored.
 - The final HMR regression pass confirmed signed ledger deltas (`-1` stock-out and `+1` stock-in), one-based review-image labels (`Xem ảnh 1`), and non-destructive multi-target promotion editing with save disabled until every new target is valid.

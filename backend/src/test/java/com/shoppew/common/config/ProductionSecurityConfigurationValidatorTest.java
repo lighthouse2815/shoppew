@@ -121,6 +121,10 @@ class ProductionSecurityConfigurationValidatorTest {
                         "shoppew-media"),
                 new AppProperties.Payment(mockPaymentEnabled, "unused-when-mock-is-disabled"),
                 new AppProperties.Shipping(mockShippingEnabled),
+                new AppProperties.Push(
+                        false,
+                        "",
+                        "cHJvZHVjdGlvbi1wdXNoLWVuY3J5cHRpb24ta2V5LTMyaA=="),
                 new AppProperties.RateLimit(true, 20, 10, 5, 180, 60));
     }
 }

@@ -20,6 +20,8 @@ public class ProductionSecurityConfigurationValidator implements InitializingBea
     private static final String DEVELOPMENT_DATABASE_PASSWORD = "shoppew_dev_password";
     private static final String DEVELOPMENT_STORAGE_ACCESS_KEY = "shoppew_minio";
     private static final String DEVELOPMENT_STORAGE_SECRET_KEY = "shoppew_minio_dev_password";
+    private static final String DEVELOPMENT_PUSH_ENCRYPTION_KEY =
+            "c2hvcHBldy1kZXYtcHVzaC1lbmNyeXB0aW9uLWtleSE=";
 
     private final AppProperties properties;
     private final Environment environment;
@@ -78,6 +80,17 @@ public class ProductionSecurityConfigurationValidator implements InitializingBea
 
         AppProperties.Email email = properties.email();
         requireHttpsUrl(unsafe, "APP_WEB_BASE_URL", email == null ? null : email.webBaseUrl(), false);
+
+        AppProperties.Push push = properties.push();
+        requireSecret(
+                unsafe,
+                "APP_PUSH_ENCRYPTION_KEY",
+                push == null ? null : push.encryptionKey(),
+                43,
+                DEVELOPMENT_PUSH_ENCRYPTION_KEY);
+        if (push != null && push.deliveryEnabled() && !StringUtils.hasText(push.projectId())) {
+            unsafe.add("APP_PUSH_FIREBASE_PROJECT_ID");
+        }
 
         List<String> allowedOrigins = properties.corsAllowedOrigins();
         if (allowedOrigins == null || allowedOrigins.isEmpty()) {

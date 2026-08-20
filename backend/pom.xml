@@ -31,6 +31,10 @@
 		<springdoc.version>3.0.3</springdoc.version>
 		<minio.version>9.0.2</minio.version>
 		<okhttp.version>5.3.2</okhttp.version>
+		<postgresql.version>42.7.12</postgresql.version>
+		<netty.version>4.2.16.Final</netty.version>
+		<httpcore5.version>5.4.3</httpcore5.version>
+		<firebase-admin.version>9.10.0</firebase-admin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -91,6 +95,11 @@
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
 			<version>${minio.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>${firebase-admin.version}</version>
 		</dependency>
 		<!-- MinIO 9 publishes the Kotlin multiplatform metadata artifact; Java compilation needs its JVM variant explicitly. -->
 		<dependency>
