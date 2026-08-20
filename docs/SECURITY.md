@@ -67,7 +67,7 @@ This validator is a last guardrail, not a secret manager. Secrets must be inject
 
 ## Known release gaps
 
-- Hosted CI run `32331462359` proves backend, web, Android, live API-contract, and all three production-web-image jobs on GitHub's runner for commit `ce02b9a`. The expanded Security workflow now scans source/configuration/secrets and the backend plus all three web runtime images, retains four CycloneDX SBOMs, and is validated locally with `actionlint`; both hosted workflows must still be green on the exact release commit.
+- Hosted CI run `32336008972` and Security run `32336009009` are both green on exact implementation commit `c382139`. Together they prove backend, web, Android, live API-contract, all three production-web-image builds, both CodeQL source families, source/configuration/secret scanning, all four High/Critical runtime-image scans, and four retained CycloneDX SBOMs. Dependency review is intentionally a pull-request gate and was skipped for this push.
 - Storefront/Seller/Admin images now emit CSP, frame, MIME, opener, referrer, and permissions policies and were live-verified locally. The final TLS proxy must preserve the same or stricter headers; HSTS and public-origin behavior still require deployed observation.
 - Rate-limit fallback protects one process during Redis failure but loses globally coordinated counts across replicas; edge protection and Redis availability monitoring remain necessary.
 - Application rate-limit identity is currently `request.remoteAddr`. Configure forwarded-header trust only at the real proxy and review shared-NAT/IPv6 behavior; combine it with edge policy rather than treating an untrusted forwarded IP as identity.

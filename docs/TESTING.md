@@ -115,7 +115,7 @@ Do not install or start an emulator. Confirm a real device with `adb devices -l`
 - `.github/workflows/ci.yml` defines backend `clean verify`, web quality/builds, Android JVM/lint/assembly without an emulator, and live OpenAPI contract comparison.
 - `.github/workflows/e2e.yml` is manual and creates an isolated Compose project before running real-backend Playwright, then removes its volumes even on failure.
 - `.github/workflows/security.yml` runs dependency review, CodeQL for both source families, Trivy source/configuration/secret scanning, High/Critical scans of the backend and all three web runtime images, and four retained CycloneDX SBOMs. Dependabot covers Maven, npm, Gradle, GitHub Actions, and both Docker build roots.
-- Hosted run `32328281486` proves the original four CI jobs after the API-contract JWT fixture fix; run `32331462359` additionally proves all three production-web-image jobs. These runs are evidence for their own commits only. A release must record both CI and Security as green on the exact release commit.
+- Hosted CI run `32336008972` and Security run `32336009009` are both green on exact implementation commit `c382139`: five CI jobs, both CodeQL source families, Trivy source/configuration/secret scanning, all four runtime images, and four SBOMs. Dependency review was correctly skipped on the `push` event and remains enforced on pull requests. Future releases must still record both workflows on their own exact release commit.
 
 For every release claim, record the commit, exact command, date, pass/fail counts, relevant device/browser/runtime, and failure artifacts. Do not convert an interrupted, blocked, or skipped gate into `VERIFIED`.
 
