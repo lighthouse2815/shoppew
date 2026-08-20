@@ -1,6 +1,6 @@
 # Deploying shoppew
 
-This is a production-readiness checklist, not a claim that shoppew is deployed. The repository currently contains a production-capable backend image, buildable web applications, Flyway migrations, health endpoints, and local Compose. It does **not** contain a production Compose stack, TLS proxy, cloud infrastructure, web container images, managed secret configuration, or a completed external-provider rollout.
+This is a production-readiness checklist, not a claim that shoppew is deployed. The repository contains non-root backend and web images, Flyway migrations, health endpoints, security headers for every web runtime, and local Compose. It does **not** contain a production Compose stack, TLS proxy, cloud infrastructure, managed secret configuration, or a completed external-provider rollout.
 
 ## Supported deployment shape
 
@@ -25,9 +25,14 @@ corepack pnpm typecheck:e2e
 corepack pnpm test
 corepack pnpm build
 docker build --tag shoppew-backend:<immutable-version> .\backend
+docker build --file .\deploy\docker\Dockerfile.storefront --build-arg NEXT_PUBLIC_API_URL=https://<api-origin> --build-arg NEXT_PUBLIC_MEDIA_ORIGIN=https://<media-origin> --build-arg NEXT_PUBLIC_SITE_URL=https://<storefront-origin> --tag shoppew-storefront:<immutable-version> .
+docker build --file .\deploy\docker\Dockerfile.seller --build-arg VITE_API_URL=https://<api-origin> --tag shoppew-seller:<immutable-version> .
+docker build --file .\deploy\docker\Dockerfile.admin --build-arg VITE_API_URL=https://<api-origin> --build-arg VITE_STOREFRONT_URL=https://<storefront-origin> --tag shoppew-admin:<immutable-version> .
 ```
 
-The backend Dockerfile builds and runs as non-root UID `10001`. The Storefront production process is `pnpm --filter @shoppew/storefront start` after its build. Seller Center and Admin artifacts are `web/seller/dist` and `web/admin/dist`; configure the static host to return `index.html` for client routes. There are no repository-owned production images/manifests for the web clients yet.
+The backend image runs as UID `10001`. The Storefront image uses Next.js standalone output and runs as the image's non-root `node` user on port `3000`. Seller Center and Admin run as UID `101` on the official unprivileged NGINX image, listen on port `8080`, expose `/healthz`, and return `index.html` for client-side routes. All three web Docker builds reject missing, non-HTTPS, credential-bearing, or path-bearing production origins before compiling a public bundle.
+
+The image build arguments are public client configuration, not runtime secrets. Changing an API, media, or Storefront origin requires a new immutable web image. The checked-in NGINX template receives the same compiled API origin as `SHOPPEW_API_ORIGIN` so its `connect-src` policy matches the bundle; do not override that variable independently at runtime.
 
 Before a release, generate the TypeScript contract from the intended backend version and confirm it matches the committed `web/packages/api-client/src/schema.d.ts`:
 
@@ -102,13 +107,13 @@ COD can be tested without an online payment credential, but the local mock shipp
 - Redirect HTTP to HTTPS and set HSTS only after every production subdomain works over HTTPS.
 - Preserve `Set-Cookie`; do not cache authenticated API responses; configure request body limits consistently with the backend's 5 MB upload limit.
 - Restrict backend ingress to the intended proxy and protect management endpoints. Health/info are public by application policy; Prometheus and non-public application APIs require authentication unless infrastructure adds a separate boundary.
-- Apply CSP, frame, MIME-sniffing, referrer, and permissions policies at the hosting/proxy layer. Vite-hosted Seller/Admin deployment headers are not currently represented or live-verified in this repository.
+- Keep the image-provided CSP, frame, MIME-sniffing, opener, referrer, and permissions policies intact. If the edge proxy replaces headers, reproduce the same or stricter policy and verify the final public response rather than assuming the container response survived.
 - Serve media only from the configured origin. Production Storefront image optimization deliberately rejects private-network media addresses.
 
 ## Rollout and verification checklist
 
 - [ ] All backend, web, contract, E2E, and physical-device gates pass for the exact release commit.
-- [ ] CI definitions have successful evidence on the actual hosted runner; their presence alone is not proof. The current workflows are newly added and have not yet been runner-verified.
+- [ ] CI and security definitions have successful evidence on the exact release commit and actual hosted runners; their presence alone is not proof.
 - [ ] Production startup validation passes with secret values supplied only by the secret manager.
 - [ ] PostgreSQL backup restore, Redis degradation, object upload/download, SMTP delivery, and provider failure paths are exercised in staging.
 - [ ] Storefront, Seller Center, Admin, API, media, and Android use the intended HTTPS origins and exact CORS list.

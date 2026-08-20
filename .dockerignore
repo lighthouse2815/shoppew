@@ -1,0 +1,17 @@
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!web
+!web/**
+!scripts
+!scripts/ci
+!scripts/ci/assert-https-origins.mjs
+!deploy
+!deploy/**
+
+web/**/node_modules
+web/**/.next
+web/**/dist
+web/**/coverage
+**/*.log

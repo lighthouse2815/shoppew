@@ -190,7 +190,7 @@ Do not continue with device tests when no physical device is listed; ask the use
 docker compose up --build
 ```
 
-Compose starts PostgreSQL, Redis, MinIO, Mailpit, and the backend. The backend waits for its dependencies and runs Flyway migrations before readiness becomes `UP`. The three web applications are not containerized by this local Compose file; run them from source with `corepack pnpm dev` after generating the API client. The native Android app runs on the connected phone.
+Compose starts PostgreSQL, Redis, MinIO, Mailpit, and the backend. The backend waits for its dependencies and runs Flyway migrations before readiness becomes `UP`. The developer Compose file intentionally leaves the three web applications running from source with `corepack pnpm dev`; separate non-root production images for Storefront, Seller Center, and Admin are documented in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The native Android app runs on the connected phone.
 
 ## Database reset
 
