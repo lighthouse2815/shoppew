@@ -182,7 +182,7 @@ Set-Location .\mobile\android
 adb -s <serial> install -r .\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Do not continue with device tests when no physical device is listed; ask the user to connect one. See [docs/ANDROID.md](docs/ANDROID.md) for the complete gate commands, secure-session design, and the explicit production-push gap.
+Do not continue with device tests when no physical device is listed; ask the user to connect one. See [docs/ANDROID.md](docs/ANDROID.md) for the complete gate commands, secure-session design, implemented FID lifecycle, and external Firebase/device-delivery gates.
 
 ## Run the local service stack with Docker
 
@@ -223,7 +223,7 @@ corepack pnpm test:e2e
 
 The Playwright suite uses the real backend and system Chrome; it does not intercept the commerce API with mock data. Android JVM/lint/build gates and connected tests are documented in [docs/ANDROID.md](docs/ANDROID.md). The complete command matrix, generated evidence, and rerun options are in [docs/TESTING.md](docs/TESTING.md).
 
-GitHub Actions definitions exist for backend/web/Android/API-contract checks and a manually dispatched full E2E run. They are new repository definitions and do not yet constitute verified GitHub-hosted runner evidence.
+GitHub-hosted CI evidence exists for the backend, all three web clients, Android, the live OpenAPI contract, and the three production web images. The security workflow separately runs dependency review, CodeQL, Trivy source/secret/configuration scans, High/Critical scans for all four runtime images, and CycloneDX SBOM generation; release claims still require both workflows to be green on the exact commit being released.
 
 ## Demo users
 

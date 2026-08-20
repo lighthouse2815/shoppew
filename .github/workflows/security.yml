@@ -96,9 +96,9 @@ jobs:
           category: /language:${{ matrix.language }}
 
   trivy:
-    name: Trivy / source, secrets, image, SBOM
+    name: Trivy / source, secrets, four runtime images, SBOMs
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -118,6 +118,33 @@ jobs:
       - name: Build immutable backend image
         run: docker build --tag shoppew-backend:${{ github.sha }} backend
 
+      - name: Build immutable Storefront image
+        run: |
+          docker build \
+            --file deploy/docker/Dockerfile.storefront \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.shoppew.invalid \
+            --build-arg NEXT_PUBLIC_MEDIA_ORIGIN=https://media.shoppew.invalid \
+            --build-arg NEXT_PUBLIC_SITE_URL=https://shoppew.invalid \
+            --tag shoppew-storefront:${{ github.sha }} \
+            .
+
+      - name: Build immutable Seller Center image
+        run: |
+          docker build \
+            --file deploy/docker/Dockerfile.seller \
+            --build-arg VITE_API_URL=https://api.shoppew.invalid \
+            --tag shoppew-seller:${{ github.sha }} \
+            .
+
+      - name: Build immutable Admin image
+        run: |
+          docker build \
+            --file deploy/docker/Dockerfile.admin \
+            --build-arg VITE_API_URL=https://api.shoppew.invalid \
+            --build-arg VITE_STOREFRONT_URL=https://shoppew.invalid \
+            --tag shoppew-admin:${{ github.sha }} \
+            .
+
       - name: Scan backend runtime image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -128,7 +155,37 @@ jobs:
           exit-code: 1
           skip-setup-trivy: true
 
-      - name: Generate CycloneDX image SBOM
+      - name: Scan Storefront runtime image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-storefront:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          skip-setup-trivy: true
+
+      - name: Scan Seller Center runtime image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-seller:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          skip-setup-trivy: true
+
+      - name: Scan Admin runtime image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-admin:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          skip-setup-trivy: true
+
+      - name: Generate backend CycloneDX image SBOM
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: shoppew-backend:${{ github.sha }}
@@ -136,10 +193,34 @@ jobs:
           output: shoppew-backend-sbom.cdx.json
           skip-setup-trivy: true
 
-      - name: Retain backend SBOM
+      - name: Generate Storefront CycloneDX image SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-storefront:${{ github.sha }}
+          format: cyclonedx
+          output: shoppew-storefront-sbom.cdx.json
+          skip-setup-trivy: true
+
+      - name: Generate Seller Center CycloneDX image SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-seller:${{ github.sha }}
+          format: cyclonedx
+          output: shoppew-seller-sbom.cdx.json
+          skip-setup-trivy: true
+
+      - name: Generate Admin CycloneDX image SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shoppew-admin:${{ github.sha }}
+          format: cyclonedx
+          output: shoppew-admin-sbom.cdx.json
+          skip-setup-trivy: true
+
+      - name: Retain runtime SBOMs
         uses: actions/upload-artifact@v4
         with:
-          name: shoppew-backend-sbom-${{ github.sha }}
-          path: shoppew-backend-sbom.cdx.json
+          name: shoppew-runtime-sboms-${{ github.sha }}
+          path: shoppew-*-sbom.cdx.json
           if-no-files-found: error
           retention-days: 30

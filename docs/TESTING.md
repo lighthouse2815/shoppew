@@ -63,7 +63,7 @@ With Compose dependencies and the backend healthy:
 .\scripts\smoke-catalog.ps1
 ```
 
-The script creates uniquely named synthetic admin, seller, shop, product, customer, inventory, checkout, order, notification/review, refund/dispute, finance, and audit data. It verifies object bytes through MinIO and email delivery through SMTP/Mailpit. Push delivery remains explicitly `SKIPPED` because no backend device registration/provider credentials exist. The script does not delete its data and is not safe to aim at production casually.
+The script creates uniquely named synthetic admin, seller, shop, product, customer, inventory, checkout, order, notification/review, refund/dispute, finance, and audit data. It verifies object bytes through MinIO and email delivery through SMTP/Mailpit. Push delivery remains explicitly `SKIPPED` in this local smoke because it does not provision a real Firebase project, Application Default Credentials, client configuration, or a registered physical-device FID; API integration tests cover authenticated registration, ownership transfer, encrypted storage, revocation, and retry independently. The script does not delete its data and is not safe to aim at production casually.
 
 Retain the printed `Run: yyyyMMddHHmmss` value when investigating or reusing its accounts in E2E. There are no permanent demo users.
 
@@ -114,7 +114,8 @@ Do not install or start an emulator. Confirm a real device with `adb devices -l`
 
 - `.github/workflows/ci.yml` defines backend `clean verify`, web quality/builds, Android JVM/lint/assembly without an emulator, and live OpenAPI contract comparison.
 - `.github/workflows/e2e.yml` is manual and creates an isolated Compose project before running real-backend Playwright, then removes its volumes even on failure.
-- These workflows are newly added definitions. Until an actual GitHub-hosted run completes, report them as **not runner-verified**, not as passing CI.
+- `.github/workflows/security.yml` runs dependency review, CodeQL for both source families, Trivy source/configuration/secret scanning, High/Critical scans of the backend and all three web runtime images, and four retained CycloneDX SBOMs. Dependabot covers Maven, npm, Gradle, GitHub Actions, and both Docker build roots.
+- Hosted run `32328281486` proves the original four CI jobs after the API-contract JWT fixture fix; run `32331462359` additionally proves all three production-web-image jobs. These runs are evidence for their own commits only. A release must record both CI and Security as green on the exact release commit.
 
 For every release claim, record the commit, exact command, date, pass/fail counts, relevant device/browser/runtime, and failure artifacts. Do not convert an interrupted, blocked, or skipped gate into `VERIFIED`.
 

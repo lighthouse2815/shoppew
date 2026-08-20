@@ -3,13 +3,15 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw -B -DskipTests dependency:go-offline
 COPY src src
-RUN ./mvnw -B -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 \
+    chmod +x mvnw && ./mvnw -B -ntp -DskipTests package
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN useradd --system --uid 10001 --create-home shoppew
+RUN apk upgrade --no-cache \
+    && addgroup -S -g 10001 shoppew \
+    && adduser -S -D -H -u 10001 -G shoppew shoppew
 COPY --from=build /workspace/target/backend-*.jar app.jar
 USER 10001
 EXPOSE 8080
